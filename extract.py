@@ -2,6 +2,27 @@ import os
 import fitz  # PyMuPDF
 import argparse
 import xml.etree.ElementTree as ET
+import cairosvg
+
+def rasterize_svg_to_png(svg_path, png_path, default_width=1920, default_height=1080):
+    # Parse the SVG file content
+    tree = ET.parse(svg_path)
+    root = tree.getroot()
+
+    # Ensure the SVG has defined width and height
+    if 'width' not in root.attrib or 'height' not in root.attrib:
+        root.set('width', f"{default_width}px")
+        root.set('height', f"{default_height}px")
+
+        # Convert the modified SVG tree back to a string
+        svg_content = ET.tostring(root, encoding='utf-8', method='xml')
+    else:
+        # If width and height are present, read the file content as is
+        with open(svg_path, 'rb') as svg_file:
+            svg_content = svg_file.read()
+
+    # Convert the SVG (with definite dimensions) to PNG
+    cairosvg.svg2png(bytestring=svg_content, write_to=png_path)
 
 def filter_svg(svg_content):
     # Register namespaces to preserve structure and prefixes
@@ -57,6 +78,10 @@ def extract_pdf_pymupdf(pdf_path, output_dir, output_type="text"):
             svg_path = os.path.join(output_dir, f"page{page.number}.svg")
             with open(svg_path, "w") as svg_file:
                 svg_file.write(filtered_svg)
+            
+            # Rasterize the filtered SVG into PNG
+            png_path = os.path.join(output_dir, f"page{page.number}.png")
+            rasterize_svg_to_png(svg_path, png_path)
 
 def get_output_dir(source_dir, output_type="text"):
     if output_type == "text":
