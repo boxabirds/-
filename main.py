@@ -5,33 +5,48 @@ import requests
 import shutil
 import datetime
 from tqdm import tqdm
+import time  # Import time module for throttling
+
+# Constants
+WAIT_TIME = 3  # seconds to wait between downloads to respect arXiv's rate limits
 
 def download_paper(paper, destination):
     """Download the PDF of a single paper."""
-    response = requests.get(paper.pdf_url, stream=True)
-    with open(os.path.join(destination, f"{paper.get_short_id()}.pdf"), 'wb') as f:
-        shutil.copyfileobj(response.raw, f)
+    try:
+        response = requests.get(paper.pdf_url, stream=True)
+        with open(os.path.join(destination, f"{paper.get_short_id()}.pdf"), 'wb') as f:
+            shutil.copyfileobj(response.raw, f)
+        return True
+    except Exception as e:
+        print(f"Error downloading {paper.get_short_id()}: {e}")
+        return False
 
 def fetch_and_download(subjects, days_back, destination):
     """Fetch papers from arXiv and download them."""
-    # Initialize arXiv client
     client = arxiv.Client()
-
-    # Ensure the destination directory exists
     if not os.path.exists(destination):
         os.makedirs(destination)
 
-    # Convert days_back to a datetime for comparison
     cutoff_date = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days_back)
-
-    # Fetch and download papers
     search_query = " OR ".join([f"cat:{subject}" for subject in subjects])
-    for paper in tqdm(client.results(arxiv.Search(query=search_query, sort_by=arxiv.SortCriterion.SubmittedDate)), desc="Downloading papers"):
-        if paper.updated.replace(tzinfo=datetime.timezone.utc) >= cutoff_date:
-            pdf_path = os.path.join(destination, f"{paper.get_short_id()}.pdf")
-            if not os.path.exists(pdf_path):
-                download_paper(paper, destination)
-                print(f"Downloaded: {paper.title}")
+
+    try:
+        for paper in tqdm(client.results(arxiv.Search(query=search_query, sort_by=arxiv.SortCriterion.SubmittedDate)), desc="Downloading papers"):
+            try:
+                if paper.updated.replace(tzinfo=datetime.timezone.utc) >= cutoff_date:
+                    pdf_path = os.path.join(destination, f"{paper.get_short_id()}.pdf")
+                    if os.path.exists(pdf_path):
+                        print("Skipping already downloaded paper: ", paper.title)
+                    else:
+                        if download_paper(paper, destination):
+                            print(f"Downloaded: {paper.title}")
+                            time.sleep(WAIT_TIME)  # Throttle requests to respect arXiv's rate limits
+            except Exception as e:
+                print(f"Error processing paper {paper.get_short_id()}: {e}")
+                continue
+    except arxiv.UnexpectedEmptyPageError as e:
+        print(f"Encountered an empty page error, end of job")
+
 
 def main(subjects, days_back, destination):
     fetch_and_download(subjects, days_back, destination)

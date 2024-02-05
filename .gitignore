@@ -1,6 +1,11 @@
 # PDFs
 *.pdf
 
+# ignore empty directories
+*/
+!*/.gitkeep
+
+.DS_Store
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

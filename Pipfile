@@ -7,6 +7,10 @@ name = "pypi"
 requests = "*"
 tqdm = "*"
 arxiv = "*"
+pymupdf = "*"
+cairosvg = "*"
+"pdfminer.six" = "*"
+lxml = "*"
 
 [dev-packages]
 
