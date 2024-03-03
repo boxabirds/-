@@ -5,6 +5,12 @@ import xml.etree.ElementTree as ET
 import cairosvg
 
 def rasterize_svg_to_png(svg_path, png_path, default_width=1920, default_height=1080):
+    """
+    Converts an SVG file to a PNG file
+    Default dimensions are the same ratio as an A4 page (portrait).
+
+    """
+
     # Parse the SVG file content
     tree = ET.parse(svg_path)
     root = tree.getroot()
@@ -24,7 +30,19 @@ def rasterize_svg_to_png(svg_path, png_path, default_width=1920, default_height=
     # Convert the SVG (with definite dimensions) to PNG
     cairosvg.svg2png(bytestring=svg_content, write_to=png_path)
 
-def filter_svg(svg_content):
+def strip_text_from_svg(svg_content):
+    """
+    Attempts to create image-only svg by stripping <use> elements with 'data-text' attribute sitting
+    directly under <svg> or <svg><g> where there's only one <g> tag in the svg doc.
+    e.g. <use data-text="H"…>
+
+    Parameters:
+    - svg_content (str): A string containing the SVG content to have its text stripped.
+
+    Returns:
+    - str: The stripped SVG content as a string.
+    """
+
     # Register namespaces to preserve structure and prefixes
     ET.register_namespace('', "http://www.w3.org/2000/svg")
     ET.register_namespace('xlink', "http://www.w3.org/1999/xlink")
@@ -53,6 +71,16 @@ def filter_svg(svg_content):
         return ET.tostring(root, encoding='unicode', method='xml')
 
 def extract_pdf_pymupdf(pdf_path, output_dir, output_type="text"):
+    """
+    Extracts content from a PDF file using PyMuPDF (fitz) and saves it to the specified directory.
+    Supports extracting plain text and images or converting pages to SVG and then rasterizing to PNG.
+
+    Parameters:
+    - pdf_path (str): The file path of the input PDF.
+    - output_dir (str): The directory path where the extracted content should be saved.
+    - output_type (str, optional): The type of output to extract ('text' or 'svg'). Defaults to 'text'.
+    """
+
     doc = fitz.open(pdf_path)
 
     for page in doc:
@@ -74,7 +102,7 @@ def extract_pdf_pymupdf(pdf_path, output_dir, output_type="text"):
         elif output_type == "svg":
             # Generate and save SVG for each page
             svg = page.get_svg_image(matrix=fitz.Identity)
-            filtered_svg = filter_svg(svg)
+            filtered_svg = strip_text_from_svg(svg)
             svg_path = os.path.join(output_dir, f"page{page.number}.svg")
             with open(svg_path, "w") as svg_file:
                 svg_file.write(filtered_svg)
@@ -84,6 +112,17 @@ def extract_pdf_pymupdf(pdf_path, output_dir, output_type="text"):
             rasterize_svg_to_png(svg_path, png_path)
 
 def get_output_dir(source_dir, output_type="text"):
+    """
+    Determines the output directory based on the source directory and the specified output type.
+
+    Parameters:
+    - source_dir (str): The base directory where the source files are located.
+    - output_type (str, optional): The type of output ('text' or 'svg') to determine the subdirectory. Defaults to 'text'.
+
+    Returns:
+    - str or None: The path to the output directory, or None if the output type is unsupported.
+    """
+
     if output_type == "text":
         return os.path.join(source_dir, "extracted-text")
     elif output_type == "svg":
@@ -93,6 +132,16 @@ def get_output_dir(source_dir, output_type="text"):
         return None
 
 def process_pdfs(source_dir, output_type="text", limit=None):
+    """
+    Processes PDF files from a source directory, extracting content as specified by the output type.
+    Can optionally limit the number of processed files.
+
+    Parameters:
+    - source_dir (str): The directory containing the PDF files to be processed.
+    - output_type (str, optional): The type of content to extract from the PDFs ('text' or 'svg'). Defaults to 'text'.
+    - limit (int, optional): The maximum number of PDF files to process. If None, all PDFs in the source directory are processed.
+    """
+
     extracted_dir = get_output_dir(source_dir, output_type)
     if extracted_dir is None:
         return
