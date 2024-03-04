@@ -1,8 +1,10 @@
 # PDFs
 *.pdf
+*.tar.gz
 
-# ignore empty directories
-*/
+
+cs_CL-cs_AI/
+output/
 !*/.gitkeep
 
 .DS_Store
