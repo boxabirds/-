@@ -25,12 +25,12 @@ def download_paper(paper, pdf_output_path:Path, source_output_path:Path=None):
     if not pdf_file_path.exists():
         try:
             paper.download_pdf(dirpath=str(pdf_output_path), filename=pdf_file_path.name)
-            print(f"Downloaded PDF: {pdf_file_path.name}")
+            #print(f"Downloaded PDF: {pdf_file_path.name}")
             time.sleep(WAIT_TIME)  # Throttle requests to respect arXiv's rate limits only when we've actually downloaded
         except Exception as e:
             print(f"Error downloading PDF {paper.get_short_id()}: {e}")
-    else:
-        print(f"PDF already exists, skipping: {pdf_file_path.name}")
+    #else:
+        #print(f"PDF already exists, skipping: {pdf_file_path.name}")
     
     # Check and Download source if requested
     if source_output_path is not None:
@@ -38,12 +38,12 @@ def download_paper(paper, pdf_output_path:Path, source_output_path:Path=None):
         if not source_file_path.exists():
             try:
                 paper.download_source(dirpath=str(source_output), filename=source_file_path.name)
-                print(f"Downloaded source: {source_file_path.name}")
+                #print(f"Downloaded source: {source_file_path.name}")
                 
             except Exception as e:
                 print(f"Error downloading source {paper.get_short_id()}: {e}")
-        else:
-            print(f"Source file already exists, skipping: {source_file_path.name}")
+        #else:
+        #    print(f"Source file already exists, skipping: {source_file_path.name}")
     
     
 
@@ -76,14 +76,14 @@ def fetch_and_download(subjects, days_back, pdf_output, include_source, source_o
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download papers from arXiv based on subjects and date range.")
     parser.add_argument("--subjects", type=str, default="cs.CL,cs.AI", help="Comma-separated list of arXiv subjects.")
-    parser.add_argument("--range", type=int, default=7, help="Number of days back to fetch papers.")
+    parser.add_argument("--days", type=int, default=7, help="Number of days back to fetch papers.")
     parser.add_argument("--pdf-output", type=str, default="output/pdf", help="Output directory for PDFs.")
     parser.add_argument("--include-source", action="store_true", default=True, help="Download source files (LaTeX and images) if they exist.")
     parser.add_argument("--source-output", type=str, default="output/source", help="Output directory for source files.")
     
     args = parser.parse_args()
     subjects = args.subjects.split(',')
-    days_back = args.range
+    days_back = args.days
     pdf_output = Path(args.pdf_output).resolve()
     include_source = args.include_source
     source_output = Path(args.source_output).resolve()
