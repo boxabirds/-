@@ -11,6 +11,8 @@ pymupdf = "*"
 cairosvg = "*"
 "pdfminer.six" = "*"
 lxml = "*"
+google-cloud-discoveryengine = "*"
+google-api-core = "*"
 
 [dev-packages]
 
